@@ -234,48 +234,6 @@
     font-size: 0.95rem;
     font-weight: 700;
   }
-  .room-request{
-    display: flex;
-    gap: 6px;
-    margin-top: 10px;
-  }
-  .room-request input{
-    flex: 1;
-    min-width: 0;
-    font-family: 'Quicksand', sans-serif;
-    font-weight: 600;
-    font-size: 0.85rem;
-    padding: 7px 10px;
-    border: 2px solid var(--line);
-    border-radius: 999px;
-    background: #fffdf7;
-    color: var(--ink);
-  }
-  .room-request input:focus{ outline: none; border-color: var(--ocean); }
-  .room-request button{
-    font-family: 'Quicksand', sans-serif;
-    font-weight: 700;
-    font-size: 0.8rem;
-    padding: 7px 12px;
-    border: none;
-    border-radius: 999px;
-    background: var(--coral);
-    color: #fff;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .room-request button:hover{ background: var(--coral-deep); }
-  .room-request .sold-out{
-    font-family: 'Quicksand', sans-serif;
-    font-weight: 700;
-    font-size: 0.85rem;
-    color: var(--coral-deep);
-  }
-  .popup-line.requested-by{
-    font-size: 0.82rem;
-    color: #5a7a76;
-    margin-top: 4px;
-  }
   .leaflet-popup-content .directions-btn{
     display: block;
     margin-top: 10px;
@@ -356,22 +314,19 @@ const WEDDING = {
 
 const LOCATIONS = [
   { name: "Ivory Sands",                          lat: 27.9700130, lng: -82.8286542 },
-  { name: "Holiday Inn",                          lat: 27.967818,  lng: -82.828300,
-    roomsLeft: 20 },
+  { name: "Holiday Inn",                          lat: 27.967818,  lng: -82.828300  },
   { name: "Shephard's Beach Resort",               lat: 27.966919,  lng: -82.827134  },
-  { name: "Courtyard by Marriott",                lat: 27.9802429, lng: -82.8255345,
-    roomsLeft: 5 },
+  { name: "Courtyard by Marriott",                lat: 27.9802429, lng: -82.8255345 },
   { name: "AC Hotel",                              lat: 27.9714545, lng: -82.8284936 },
   { name: "Pier House 60",                        lat: 27.975455,  lng: -82.827909,
     costPerNight: 229, resortFee: 37, parkingFee: 0, totalPerNight: 300.58 }
 ];
 
-// Cost/rooms/link fields left as placeholders where not already set above.
+// Cost/link fields left as placeholders where not already set above.
 LOCATIONS.forEach(loc => {
   if (loc.costPerNight === undefined) loc.costPerNight = null;
   if (loc.resortFee === undefined) loc.resortFee = null;
   if (loc.parkingFee === undefined) loc.parkingFee = null;
-  if (loc.roomsLeft === undefined) loc.roomsLeft = 10; // default block size unless overridden above
   if (loc.bookingLink === undefined) loc.bookingLink = null; // set a URL here once a hotel's booking link is known
 });
 
@@ -466,48 +421,14 @@ function fmtCost(v){
 }
 
 function popupHtml(loc, idx){
-  const soldOut = loc.roomsLeft <= 0;
-  const requestedByLine = (loc.selections && loc.selections.length)
-    ? `<span class="popup-line requested-by">Requested: ${loc.selections.join(', ')}</span>`
-    : '';
   return `
     <span class="popup-title"><svg viewBox="0 0 784 784" style="width:1em;height:1em;vertical-align:-0.12em;"><path d="${SHELL_HULL_PATH}" fill="#bfe3f0"/><path d="${SHELL_PATH}" fill="#2f86b3" stroke="#134a63" stroke-width="12" stroke-linejoin="round"/></svg> ${loc.name}</span>
     <span class="popup-wave">〜 〜 〜</span>
     <span class="popup-line nowrap"><span class="icon">🚗</span>Drive: ${loc.driveText || 'calculating…'}</span>
     <span class="popup-line nowrap"><span class="icon">🚶</span>Walk: ${loc.walkText || 'calculating…'}</span>
-    <span class="popup-line nowrap"><span class="icon">🛏️</span>${loc.roomsLeft} room${loc.roomsLeft === 1 ? '' : 's'} left in block</span>
     <span class="cost-tag">${fmtCost(loc.costPerNight)}/night · resort ${fmtCost(loc.resortFee)} · parking ${fmtCost(loc.parkingFee)}${loc.totalPerNight ? ` · total ~$${loc.totalPerNight}/night incl. tax` : ''}</span>
     ${loc.bookingLink ? `<a class="directions-btn" href="${loc.bookingLink}" target="_blank" rel="noopener">🔗 Book This Hotel</a>` : ''}
-    <div class="room-request">
-      ${soldOut
-        ? `<span class="sold-out">Room block full</span>`
-        : `<input type="text" id="guestName-${idx}" placeholder="Your name" maxlength="40" onkeydown="if(event.key==='Enter') requestRoom(${idx})">
-           <button onclick="requestRoom(${idx})">I want this room</button>`
-      }
-    </div>
-    ${requestedByLine}
   `;
-}
-
-// Guest room-request handler. This currently keeps state only in this browser tab/session —
-// TODO once Supabase is wired up: replace the roomsLeft-- / selections.push below with an
-// insert into a `room_selections` table (guest name, hotel, timestamp), then re-fetch the
-// live remaining-rooms count for this hotel from a query instead of decrementing locally.
-function requestRoom(idx){
-  const loc = LOCATIONS[idx];
-  const input = document.getElementById(`guestName-${idx}`);
-  const name = input.value.trim();
-  if (!name){
-    input.focus();
-    return;
-  }
-  if (loc.roomsLeft <= 0) return;
-
-  loc.roomsLeft -= 1;
-  loc.selections = loc.selections || [];
-  loc.selections.push(name);
-
-  loc.marker.setPopupContent(popupHtml(loc, idx));
 }
 
 LOCATIONS.forEach((loc, idx) => {
